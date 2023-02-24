@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template, request, flash, redirect, session, g
+from flask import Flask, render_template, request, flash, redirect, session, g, abort
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
@@ -21,6 +21,7 @@ app.config['SQLALCHEMY_ECHO'] = False
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
 toolbar = DebugToolbarExtension(app)
+
 
 connect_db(app)
 
@@ -153,7 +154,8 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    return render_template('users/show.html', user=user, messages=messages)
+    likes = [message.id for message in user.likes]
+    return render_template('users/show.html', user=user, messages=messages, likes=likes)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -209,7 +211,6 @@ def stop_following(follow_id):
 
     return redirect(f"/users/{g.user.id}/following")
 
-
 @app.route('/users/profile', methods=["GET", "POST"])
 def edit_profile():
     """Update profile for current user."""
@@ -255,7 +256,7 @@ def delete_user():
 
 
 ##############################################################################
-# Messages routes:
+# Messages route:
 
 @app.route('/messages/new', methods=["GET", "POST"])
 def messages_add():
@@ -279,6 +280,37 @@ def messages_add():
 
     return render_template('messages/new.html', form=form)
 
+@app.route('/users/<int:user_id>/likes', methods=['GET'])
+def showing_likes(user_id):
+
+    if not g.user_id:
+        flash("You are not authorized", "danger")
+        return redirect('/')
+    
+    user = User.query.get_or_404(user_id)
+    return render_template('users/likes.html', user=user, likes=user.likes)
+
+@app.route('/messages/<int:message_id>/like', methods=['POST'])
+def add_like(message_id):
+    """adding like feature for logged in user"""
+
+    if not g.user:
+        flash("You are not authrized, must be logged in!", "danger")
+        return redirect('/')
+    # need assistance understanding this code
+    liked_msg = Message.query.get_or_404(message_id)
+    if liked_msg.user_id == g.user_id:
+        return 
+    
+    likes_by_user = g.user.likes
+
+    if liked_msg in likes_by_user:
+        g.user.likes = [like for like in likes_by_user if like != liked_msg]
+    else:
+        g.user.likes.append(liked_msg)
+
+    db.session.commit()
+    return redirect("/")
 
 @app.route('/messages/<int:message_id>', methods=["GET"])
 def messages_show(message_id):
@@ -316,13 +348,16 @@ def homepage():
     """
 
     if g.user:
+        following_users = [f.id for f in g.user.following] + [g.user.id]
         messages = (Message
                     .query
+                    .filter(Message.user_id.in_(following_users))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
-
-        return render_template('home.html', messages=messages)
+        
+        likes_msg_id = [msg.id for msg in g.user.likes]
+        return render_template('home.html', messages=messages, likes=likes_msg_id)
 
     else:
         return render_template('home-anon.html')

@@ -29,7 +29,7 @@ class EditUserForm(FlaskForm):
 
     username = StringField('Username', validators=[DataRequired()])
     email = StringField("E-mail", validators=[DataRequired()])
-    bio = TextAreaField("Who are you? What do you do?")
+    bio = TextAreaField("Who are you? What do you do?", validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8, max=15)])
-    image_url = StringField('Add a picture of yourself')
-    header_image_url = StringField("Background image")
+    image_url = StringField('Add a picture of yourself', validators=[DataRequired()])
+    header_image_url = StringField("Background image", validators=[DataRequired()])
