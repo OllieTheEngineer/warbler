@@ -280,7 +280,7 @@ def messages_add():
 
     return render_template('messages/new.html', form=form)
 
-@app.route('/users/<int:user_id>/likes', methods=['GET'])
+@app.route('/users/<int:user_id>/like', methods=['GET'])
 def showing_likes(user_id):
 
     if not g.user_id:
@@ -290,7 +290,7 @@ def showing_likes(user_id):
     user = User.query.get_or_404(user_id)
     return render_template('users/likes.html', user=user, likes=user.likes)
 
-@app.route('/messages/<int:message_id>/likes', methods=['POST'])
+@app.route('/messages/<int:message_id>/like', methods=['POST'])
 def add_like(message_id):
     """adding like feature for logged in user"""
 
