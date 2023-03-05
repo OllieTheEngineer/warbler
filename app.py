@@ -299,9 +299,10 @@ def add_like(message_id):
         return redirect('/')
     # need assistance understanding this code
     liked_msg = Message.query.get_or_404(message_id)
-    print(liked_msg)
-    if liked_msg.user_id == g.user_id:
-        return 
+    print(dir(liked_msg.user))
+    # can omit this - to review.
+    if liked_msg.user.id == g.user.id:
+        return flash()
     
     likes_by_user = g.user.likes
 
